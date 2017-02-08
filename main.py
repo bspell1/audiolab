@@ -41,15 +41,20 @@ with a2t.Microphone(mic_index) as mic:
         rec.listen(mic, timeout=1, phrase_time_limit=3)
     except a2t.WaitTimeoutError:
         pass    # nothing detected
-    rec.adjust_for_ambient_noise(mic, 5)
+
     print("done.")
 
+    iteration = 0
     while True:
         text = None
         wake = None
         try:
+            if iteration % 5 == 0:
+                sys.stdout.write("adjusting for noise..."); sys.stdout.flush()
+                rec.adjust_for_ambient_noise(mic, 5)
+                print("done.")
             sys.stdout.write("listening... "); sys.stdout.flush()
-            sample = rec.listen(mic, timeout=5, phrase_time_limit=3)
+            sample = rec.listen(mic, timeout=2, phrase_time_limit=3)
             sys.stdout.write("recognizing... ")
             text = rec.recognize_sphinx(sample)
             wake = rec.recognize_sphinx(sample,
@@ -64,3 +69,4 @@ with a2t.Microphone(mic_index) as mic:
         except Exception as e:
             print("audio_handler: unknown error - {0}".format(e))
         print("wake: {:20} text: {}".format(wake or "", text or ""))
+        iteration = iteration + 1
