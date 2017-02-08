@@ -1,3 +1,4 @@
+import sys
 import time
 
 import pyaudio
@@ -31,38 +32,35 @@ else:
 print()
 
 
-def ambient_handler(rec, mic):
-    while True:
-        try:
-            rec.adjust_for_ambient_noise(mic, 5)
-        except Exception as e:
-            print("ambient_handler: unknown error - {0}".format(e))
-
-
-def audio_handler(rec, sample):
-    text = None
-    wake = None
-    try:
-        text = rec.recognize_sphinx(sample)
-        wake = rec.recognize_sphinx(sample, keyword_entries=[("computer", .5)])
-    except a2t.UnknownValueError:
-        pass    # wake word not recognized
-        # print("audio_handler: sample value error")
-    except a2t.RequestError as e:
-        print("audio_handler: recognition error - {0}".format(e))
-    except Exception as e:
-        print("audio_handler: unknown error - {0}".format(e))
-    print("wake: {:20} text: {}".format(wake or "", text or ""))
-
-
+sys.stdout.write("initializing..."); sys.stdout.flush()
 rec = a2t.Recognizer()
-mic = a2t.Microphone(mic_index)
-listening = False
+with a2t.Microphone(mic_index) as mic:
+    rec.dynamic_energy_adjustment_ratio = 2
 
-rec.dynamic_energy_adjustment_ratio = 2
-rec.listen_in_background(mic, audio_handler, 3)
-
-time.sleep(5)
-while True:
+    try:
+        rec.listen(mic, timeout=1, phrase_time_limit=3)
+    except a2t.WaitTimeoutError:
+        pass    # nothing detected
     rec.adjust_for_ambient_noise(mic, 5)
-    time.sleep(30)
+    print("done.")
+
+    while True:
+        text = None
+        wake = None
+        try:
+            sys.stdout.write("listening... "); sys.stdout.flush()
+            sample = rec.listen(mic, timeout=5, phrase_time_limit=3)
+            sys.stdout.write("recognizing... ")
+            text = rec.recognize_sphinx(sample)
+            wake = rec.recognize_sphinx(sample,
+                                        keyword_entries=[("computer", 0.5)])
+        except a2t.WaitTimeoutError:
+            pass    # nothing detected
+        except a2t.UnknownValueError:
+            pass    # wake word not recognized
+            # print("audio_handler: sample value error")
+        except a2t.RequestError as e:
+            print("audio_handler: recognition error - {0}".format(e))
+        except Exception as e:
+            print("audio_handler: unknown error - {0}".format(e))
+        print("wake: {:20} text: {}".format(wake or "", text or ""))
