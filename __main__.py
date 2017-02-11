@@ -1,5 +1,4 @@
 import sys
-import time
 
 import pyaudio
 import speech_recognition as a2t
@@ -32,7 +31,9 @@ else:
 print()
 
 
-sys.stdout.write("initializing..."); sys.stdout.flush()
+sys.stdout.write("initializing...")
+sys.stdout.flush()
+
 rec = a2t.Recognizer()
 with a2t.Microphone(mic_index) as mic:
     rec.dynamic_energy_adjustment_ratio = 2
@@ -50,15 +51,17 @@ with a2t.Microphone(mic_index) as mic:
         wake = None
         try:
             if iteration % 5 == 0:
-                sys.stdout.write("adjusting for noise..."); sys.stdout.flush()
+                sys.stdout.write("adjusting for noise...")
+                sys.stdout.flush()
                 rec.adjust_for_ambient_noise(mic, 5)
                 print("done.")
-            sys.stdout.write("listening... "); sys.stdout.flush()
+            sys.stdout.write("listening... ")
+            sys.stdout.flush()
             sample = rec.listen(mic, timeout=2, phrase_time_limit=3)
             sys.stdout.write("recognizing... ")
             text = rec.recognize_sphinx(sample)
             wake = rec.recognize_sphinx(sample,
-                                        keyword_entries=[("computer", 0.5)])
+                                        keyword_entries=[("computer", 0.75)])
         except a2t.WaitTimeoutError:
             pass    # nothing detected
         except a2t.UnknownValueError:
